@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Map</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        #map {
+            height: 100vh; /* 100% of the viewport height */
+            width: 100vw; /* 100% of the viewport width */
+        }
+     #buttons-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        button {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="buttons-container">
+        <button id="viewButton">View</button>
+        <button id="addButton">Add</button>
+        <button id="clearScreen">Clear</button>
+    </div>
+    <div id="map"></div>
+         <script src="your_script.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCDgtP4snEXWtecLlBs7QxHCWOlhRTgDjI&libraries=places&callback=initMap" async defer></script>
+</body>
+</html>

@@ -1,11 +1,14 @@
 let map;
 let markers = [];
+let infoWindow;
 
 function initMap() {
     map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 0, lng: 0 },
         zoom: 2,
     });
+
+    infoWindow = new google.maps.InfoWindow();
 
     const viewButton = document.getElementById('viewButton');
     const addButton = document.getElementById('addButton');
@@ -45,6 +48,20 @@ function initMap() {
                 } else {
                     console.error("Geolocation is not supported by this browser.");
                 }
+
+				  marker.addListener('click', function () {
+        // Display InfoWindow with buttons
+        const content = `
+            <div>
+                <p>${description}</p>
+                <button onclick="deleteMarker(${markers.indexOf(marker)})">Delete</button>
+                <button onclick="updateDescription(${markers.indexOf(marker)})">Update Description</button>
+            </div>
+        `;
+
+        infoWindow.setContent(content);
+        infoWindow.open(map, marker);
+    });
             });
 
 
@@ -55,14 +72,17 @@ function initMap() {
         }
     });
 
-  google.maps.event.addListener(map, 'click', function(event) {
+    google.maps.event.addListener(map, 'click', function(event) {
       // Open a prompt to get the description from the user
       const description = prompt('Enter a description for this location:');
 
       // Check if the user entered a description
-      if (description) {
+      if (description)
+      {
+          console.log("clicked to add a marker");
           // Display a marker at the clicked location with the entered description
           displayMarker(event.latLng, description);
+          addMarker(event.latLng, description);
       }
   });
 
@@ -174,6 +194,20 @@ function addMarkerOnMap(location, description) {
 
     // Optionally, you can add click event listener to display the description
     marker.addListener('click', function() {
+
+        // Display InfoWindow with buttons
+        const content = `
+            <div>
+                <p>${description}</p>
+                <button onclick="deleteMarker(${markers.indexOf(marker)})">Delete</button>
+                <button onclick="updateDescription(${markers.indexOf(marker)})">Update Description</button>
+            </div>
+        `;
+
+        infoWindow.setContent(content);
+        infoWindow.open(map, marker);
+
+
         alert('Description: ' + description);
     });
 }
@@ -214,4 +248,85 @@ function displayMarker(location, description) {
 
     // Store the marker in the markers array
     markers.push(marker);
+}
+
+function deleteMarker(index) {
+    const marker = markers[index];
+    // Remove marker from the map
+
+    if (!marker || !marker.id) {
+            console.error('Marker or Marker ID not available.');
+            return;
+        }
+    marker.setMap(null);
+
+    // Remove marker from the markers array
+    markers.splice(index, 1);
+
+    // Send a DELETE request to remove the marker from the backend
+        const markerId = marker.id;
+
+      fetch(`http://localhost:8080/api/markers/${markerId}`,
+      {
+            method: 'DELETE',
+        })
+    .then(response => {
+        if (response.ok) {
+            console.log('Marker deleted successfully.');
+        } else {
+            console.error('Failed to delete marker.');
+        }
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+
+    // Close the InfoWindow
+    infoWindow.close();
+}
+
+function updateDescription(index) {
+    const marker = markers[index];
+    const markerId =marker.id;
+
+    if (!marker || !marker.id) {
+                console.error('Marker or Marker ID not available.');
+                return;
+            }
+    const currentDescription = marker.getTitle();
+
+    // Prompt user for a new description
+    const newDescription = prompt('Enter a new description:', currentDescription);
+
+
+    if (newDescription) {
+        // Update the marker title
+        marker.setTitle(newDescription);
+
+        // Send a PUT request to update the marker description in the backend
+
+
+        fetch(`http://localhost:8080/api/markers/${markerId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                description: newDescription,
+            }),
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('Marker description updated successfully.');
+            } else {
+                console.error('Failed to update marker description.');
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+
+    // Close the InfoWindow
+    infoWindow.close();
 }

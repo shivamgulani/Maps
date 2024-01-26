@@ -195,14 +195,16 @@ function addMarkerOnMap(location, description) {
     // Optionally, you can add click event listener to display the description
     marker.addListener('click', function() {
 
+         const latitude = marker.getPosition().lat();
+                const longitude = marker.getPosition().lng();
         // Display InfoWindow with buttons
-        const content = `
-            <div>
-                <p>${description}</p>
-                <button onclick="deleteMarker(${markers.indexOf(marker)})">Delete</button>
-                <button onclick="updateDescription(${markers.indexOf(marker)})">Update Description</button>
-            </div>
-        `;
+      const content = `
+               <div>
+                   <p>${description}</p>
+                   <button onclick="deleteMarker(${latitude}, ${longitude})">Delete</button>
+
+               </div>
+           `;
 
         infoWindow.setContent(content);
         infoWindow.open(map, marker);
@@ -250,83 +252,89 @@ function displayMarker(location, description) {
     markers.push(marker);
 }
 
-function deleteMarker(index) {
-    const marker = markers[index];
-    // Remove marker from the map
 
-    if (!marker || !marker.id) {
-            console.error('Marker or Marker ID not available.');
-            return;
-        }
-    marker.setMap(null);
-
-    // Remove marker from the markers array
-    markers.splice(index, 1);
-
-    // Send a DELETE request to remove the marker from the backend
-        const markerId = marker.id;
-
-      fetch(`http://localhost:8080/api/markers/${markerId}`,
-      {
-            method: 'DELETE',
+// Function to fetch marker ID based on latitude and longitude
+function fetchMarkerId(latitude, longitude) {
+    return fetch(`http://localhost:8080/api/markers/find?lat=${latitude}&lng=${longitude}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Marker not34334334 found or ID not available.');
+            }
+            return response.json();
         })
-    .then(response => {
-        if (response.ok) {
-            console.log('Marker deleted successfully.');
-        } else {
-            console.error('Failed to delete marker.');
-        }
-    })
-    .catch((error) => {
-        console.error('Error:', error);
-    });
-
-    // Close the InfoWindow
-    infoWindow.close();
+        .then(data => {
+            if (data && data.id) {
+                return data.id; // Return the marker ID if found
+            } else {
+                throw new Error('Marker 6767 not found or ID not available.');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching marker ID:', error);
+            throw error; // Propagate the error
+        });
 }
 
-function updateDescription(index) {
-    const marker = markers[index];
-    const markerId =marker.id;
+// Function to delete a marker
+function deleteMarker(latitude, longitude) {
+    fetchMarkerId(latitude, longitude)
+        .then(markerId => {
+            // Send a DELETE request to remove the marker from the backend
+            fetch(`http://localhost:8080/api/markers/${markerId}`, {
+                method: 'DELETE',
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Marker deleted successfully.');
+                } else {
+                    console.error('Failed to delete marker.');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting marker:', error);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching marker ID for deletion:', error);
+        });
+}
 
-    if (!marker || !marker.id) {
-                console.error('Marker or Marker ID not available.');
+// Function to update a marker description
+function updateMarkerDescription(latitude, longitude) {
+    fetchMarkerId(latitude, longitude)
+        .then(marker => {
+            // Prompt the user for the new description
+            const newDescription = prompt('Enter the new description:');
+            if (newDescription === null || newDescription.trim() === '') {
+                console.log('Invalid description. Update cancelled.');
                 return;
             }
-    const currentDescription = marker.getTitle();
 
-    // Prompt user for a new description
-    const newDescription = prompt('Enter a new description:', currentDescription);
+            // Create an object with the updated description
+            const updatedMarker = {
+                description: newDescription
+            };
 
-
-    if (newDescription) {
-        // Update the marker title
-        marker.setTitle(newDescription);
-
-        // Send a PUT request to update the marker description in the backend
-
-
-        fetch(`http://localhost:8080/api/markers/${markerId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                description: newDescription,
-            }),
+            // Send a PUT request to update the marker description
+            fetch(`http://localhost:8080/api/markers/${marker.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedMarker),
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Marker description updated successfully.');
+                } else {
+                    console.error('Failed to update marker description.');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating marker description:', error);
+            });
         })
-        .then(response => {
-            if (response.ok) {
-                console.log('Marker description updated successfully.');
-            } else {
-                console.error('Failed to update marker description.');
-            }
-        })
-        .catch((error) => {
-            console.error('Error:', error);
+        .catch(error => {
+            console.error('Error fetching marker ID for update:', error);
         });
-    }
-
-    // Close the InfoWindow
-    infoWindow.close();
 }

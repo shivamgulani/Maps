@@ -46,13 +46,24 @@ public class MarkerController {
         return new ResponseEntity<>(createdMarker, HttpStatus.CREATED);
     }
 
+    @RequestMapping(value="/find",method = RequestMethod.GET)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<Marker> getMarkerId(@RequestParam double lat, @RequestParam double lng) {
+        System.out.println("Hello 1234323443"+lat+" "+"lng");
+        Marker marker = markerRepository.findByLatitudeAndLongitude(lat, lng);
+        if (marker != null) {
+            return ResponseEntity.ok().body(marker);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
     // Update an existing marker
     @PutMapping("/{id}")
     public ResponseEntity<Marker> updateMarker(@PathVariable Long id, @RequestBody Marker updatedMarker) {
         return markerRepository.findById(id)
                 .map(existingMarker -> {
-                    existingMarker.setLatitude(updatedMarker.getLatitude());
-                    existingMarker.setLongitude(updatedMarker.getLongitude());
+                    existingMarker.setLatitude(existingMarker.getLatitude());
+                    existingMarker.setLongitude(existingMarker.getLongitude());
                     existingMarker.setDescription(updatedMarker.getDescription());
                     markerRepository.save(existingMarker);
                     return ResponseEntity.ok(existingMarker);
